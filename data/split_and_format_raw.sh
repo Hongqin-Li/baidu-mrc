@@ -14,6 +14,7 @@ if (( $? )); then
     echo "Usage: bash split_raw.sh xxx.json"
     exit 1
 else 
+    echo "Formating raw..."
     python3 format_raw.py --directory=$DIRECTORY
 fi
 exit 0

@@ -3,7 +3,8 @@ import json
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--directory', '-d', type=str, help='directory of json files to format', default='./data_chunks/')
+parser.add_argument('--raw-directory', '-r', type=str, help='directory of baidu raw json files to format', default='./data_chunks/')
+parser.add_argument('--out-directory', '-o', type=str, help='output directory of SQUAD-like json files', default='./squad_like_datas/')
 
 args = parser.parse_args()
 
@@ -18,10 +19,11 @@ for f in files:
 
     with open(f, 'r') as fp:
         try:
-            json.load(fp)
+            datas = json.load(fp)
             print (f'File "{f}" has been formatted.')
             continue
         except:
+            datas = []
             pass
 
     with open(f, 'r') as fp:
