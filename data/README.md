@@ -30,7 +30,7 @@ Usage (e.g. convert 1000 samples):
 python3 du_to_squad.py ../raw_data/preprocessed/trainset/zhidao.train.json --num_samples 1000
 ```
 
-
+the result can be found in `../raw_data/preprocessed/trainset/`
 
 
 
