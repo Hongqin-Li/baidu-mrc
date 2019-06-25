@@ -51,6 +51,12 @@ def train(epochs):
 
         for docs, quests, begin_idxs, end_idxs, in provider.train_batch(batch_size=batch_size):
 
+            if torch.cuda.is_available():
+                docs = docs.cuda()
+                quests = quests.cuda()
+                begin_idxs = begin_idxs.cuda()
+                end_idxs = end_idxs.cuda()
+
             model.zero_grad()
 
             begin_idxs_out, end_idxs_out = model(docs, quests) 

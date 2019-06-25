@@ -62,6 +62,10 @@ class BiDAF(nn.Module):
         sl_c=c.shape[1]
         sl_q=q.shape[1]
         S=torch.zeros(sl_q,sl_c,D_batch)
+        
+        # Add GPU support
+        if torch.cuda.is_available(): S = S.cuda()
+
         # (D_batch, sl_c, 1)
         Ac=self.AttC(c).squeeze(dim=2).t()
         # (D_batch, 1, sl_q)
