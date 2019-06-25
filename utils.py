@@ -6,10 +6,10 @@ import random
 
 # Since we cannot run bert-service in our laptop...and all the input are fake!
 # When running in server, just modified this to True
-has_server = False
+has_server = True
 
 # Modify path to preprocessed raw train file provided by baidu
-train_file = './raw_data/preprocessed/trainset/search.train.json'
+train_file = '../DuReader/data/preprocessed/trainset/search.train.json'
 test_file = '' # TODO
 dev_file = '' # TODO
 
@@ -32,7 +32,7 @@ def str_to_tensor(s):
         return torch.stack([torch.Tensor(768) for c in s]) # For test
     else: 
         # FIXME
-        return torch.Tensor(bc.encode([c for c in s]))
+        return torch.Tensor(bc.encode(['*' if c.isspace() else c  for c in s]))
 
 
 def segmented_paras_to_str(sps):
