@@ -126,7 +126,7 @@ def main(fn, skip_questions_with_no_answers, toy_output, num_samples):
 
     with open(output_fn, 'w') as f:
         # For Chinese
-        json.dump(output, f, ensure_ascii=False)
+        json.dump(output, f, ensure_ascii=False, indent=4)
 
     print(f'Done! Tried to convert {total_questions} questions.'
           f'\n{num_success} questions successfully converted.'
