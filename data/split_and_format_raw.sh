@@ -8,6 +8,7 @@ DIRECTORY="./data_chunks/"
 PREFIX="chunk_" # The output chunks is data_chunks/
 LINE_SIZE=1000 # Each chunk file should have at most 1000 lines
 
+mkdir ${DIRECTORY}
 split $1 "${DIRECTORY}${PREFIX}" -d -a3 -l$LINE_SIZE --additional-suffix=.json
 
 if (( $? )); then
