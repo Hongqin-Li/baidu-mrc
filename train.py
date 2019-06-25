@@ -41,6 +41,9 @@ def train(epochs):
     except:
         print ('No saved model found!')
 
+    if torch.cuda.is_available():
+        model = model.cuda()
+        print ('Using GPU.')
 
     while e < epochs:
 
