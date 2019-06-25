@@ -9,9 +9,14 @@ import random
 has_server = False
 
 # Modify path to preprocessed raw train file provided by baidu
-train_file = '../raw_data/preprocessed/trainset/search.train.json'
+train_file = './raw_data/preprocessed/trainset/search.train.json'
 test_file = '' # TODO
 dev_file = '' # TODO
+
+
+
+cnt = 0
+
 
 bc = None
 if has_server:
@@ -24,9 +29,10 @@ def str_to_tensor(s):
     # return: tensor e.g. use bert-service to return a 768 dimensional tensor
 
     if bc is None:
-        return torch.Tensor(100, 768) # For test
+        return torch.stack([torch.Tensor(768) for c in s]) # For test
     else: 
-        return torch.Tensor(bc.encode([s])[0])
+        # FIXME
+        return torch.Tensor(bc.encode([c for c in s]))
 
 
 def segmented_paras_to_str(sps):
@@ -57,7 +63,13 @@ def line_to_input(line):
         print (f'id: {id} Cannot find provided answer')
         return None
 
-    return str_to_tensor(relevant_doc), str_to_tensor(question), torch.LongTensor([ans_start_idx]), torch.LongTensor([ans_start_idx])
+
+
+    global cnt
+    cnt += 1
+    print (f'\ridx: {cnt} ', end='')
+
+    return str_to_tensor(relevant_doc), str_to_tensor(question), torch.LongTensor([ans_start_idx]), torch.LongTensor([ans_end_idx])
 
 
 def pad_input(docs, quests, bis, eis):
@@ -107,6 +119,9 @@ class DataProvider:
 
 
     def train_batch(self, batch_size=1000):
+
+        global cnt 
+        cnt = 0
 
         for batch in raw_json_to_input_batches(train_file, batch_size=batch_size):
             yield batch

@@ -108,8 +108,10 @@ class BiDAF(nn.Module):
         m2=self.LSTMoutput(m)[0]
         p2=self.p2g(g)+self.p2m(m2)
         
-        p1=F.softmax(p1.squeeze(dim=2),dim=1)
-        p2=F.softmax(p2.squeeze(dim=2),dim=1)
+        # p1=F.softmax(p1.squeeze(dim=2),dim=1)
+        # p2=F.softmax(p2.squeeze(dim=2),dim=1)
+        p1 = p1.squeeze(dim=2)
+        p2 = p2.squeeze(dim=2)
 
         # print(m2)
         return p1,p2
