@@ -2,84 +2,79 @@ import pandas as pd
 import torch
 import json
 import random
-
-
-# Since we cannot run bert-service in our laptop...and all the input are fake!
-# When running in server, just modified this to True
-has_server = True
+from bert_serving.client import BertClient
+bc = BertClient(ip='localhost')
 
 # Modify path to preprocessed raw train file provided by baidu
 train_file = '../DuReader/data/preprocessed/trainset/search.train.json'
 test_file = '' # TODO
 dev_file = '' # TODO
 
-
-
 cnt = 0
 
+# TODO
+def preprocess_str(s):
+    res = ''
+    for c in s:
+        if '\u4e00' <= c <= '\u9fa5':
+            res += c
+    return res
 
-bc = None
-if has_server:
-    from bert_serving.client import BertClient
-    bc = BertClient(ip='localhost')
+def strs_to_tensors(strs):
+    # strs: list of strings
+    # return: tensor (number_of_strings, max_seq_len , 768)
 
+    max_seq_len = max([len(s) for s in strs])
 
-def str_to_tensor(s):
-    # str: string e.g. a question string or a document string
-    # return: tensor e.g. use bert-service to return a 768 dimensional tensor
+    ts = []
+    for s in strs:
+        t = torch.Tensor(bc.encode(['$' if c.isspace() else c for c in s]))
+        ts.append(t)
 
-    if bc is None:
-        return torch.stack([torch.Tensor(768) for c in s]) # For test
-    else: 
-        # FIXME
-        return torch.Tensor(bc.encode(['*' if c.isspace() else c  for c in s]))
+    pts =  torch.nn.utils.rnn.pad_sequence(ts, batch_first=True)
 
+    return pts
 
 def segmented_paras_to_str(sps):
-    return '\n'.join([ ''.join(sp) for sp in sps])
+    return ''.join([ ''.join(sp) for sp in sps])
 
-# i.e. one sample input
-def line_to_input(line):
+
+def parse_line(line):
+    # return string, string, int, int
 
     data = json.loads(line)
 
     id = data['question_id']
-    question = data['question'] # string
 
     if len(data['fake_answers']) == 0:
         # print (f'id: {id} No answer provided')
         return None
     elif len(data['fake_answers']) > 1:
         print (f'id: {id} Warning: More than 1 anwers are provided.')
+
+    doc = segmented_paras_to_str(data['documents'][data['answer_docs'][0]]['segmented_paragraphs'])
+
+    question = data['question'] # string
+    answer = data['fake_answers'][0] # string
+
+    doc = preprocess_str(doc)
+    answer = preprocess_str(answer)
+    question = preprocess_str(question)
+
+    # print (f'doc_len: {len(doc)}, quest_len: {len(question)}, ans_len: {len(answer)}')
+
+    ans_begin_idx = doc.find(answer)
+    ans_end_idx = ans_begin_idx + len(answer)
     
-    answer = data['fake_answers'][0] # array: (number_of_answer) e.g. [ans1, ans2, ..., ansi] each answer is a string
-
-    relevant_doc = segmented_paras_to_str(data['documents'][data['answer_docs'][0]]['segmented_paragraphs'])
-
-    ans_start_idx = relevant_doc.find(answer)
-    ans_end_idx = ans_start_idx + len(answer)
-
-    if ans_start_idx == -1:
-        print (f'id: {id} Cannot find provided answer')
+    if ans_begin_idx == -1:
+        print (f'id: {id} Cannot find given answer in document.')
         return None
-
-
 
     global cnt
     cnt += 1
     print (f'\ridx: {cnt} ', end='')
-
-    return str_to_tensor(relevant_doc), str_to_tensor(question), torch.LongTensor([ans_start_idx]), torch.LongTensor([ans_end_idx])
-
-
-def pad_input(docs, quests, bis, eis):
-    # Pad and sort
-    # TODO sort by docs length
-    docs = torch.nn.utils.rnn.pad_sequence(docs, batch_first=True)
-    quests = torch.nn.utils.rnn.pad_sequence(quests, batch_first=True)
-    return docs, quests, torch.LongTensor(bis), torch.LongTensor(eis)
-
-
+    
+    return doc, question, ans_begin_idx, ans_end_idx
 
 def raw_json_to_input_batches(path, batch_size=100):
 
@@ -91,19 +86,22 @@ def raw_json_to_input_batches(path, batch_size=100):
         
         for line in f:  
 
-            inp = line_to_input(line)
+            inp = parse_line(line)
 
             if inp == None: continue
 
-            docs.append(inp[0]) # document tensor
-            quests.append(inp[1]) # question tensor
-            begin_idxs.append(inp[2]) # answer span tensor
-            end_idxs.append(inp[3]) # answer span tensor
+            if inp[0] == '' or inp[1] == '': continue
+
+            docs.append(inp[0]) # document string
+            quests.append(inp[1]) # question string
+
+            begin_idxs.append(inp[2]) # answer span start index
+            end_idxs.append(inp[3]) # answer span end index
 
             cnt += 1
             if cnt == batch_size:
                 
-                yield pad_input(docs, quests, begin_idxs, end_idxs)
+                yield strs_to_tensors(docs), strs_to_tensors(quests), torch.LongTensor(begin_idxs), torch.LongTensor(end_idxs)
 
                 # reset to collect next batch
                 docs, quests, begin_idxs, end_idxs = [], [], [], []

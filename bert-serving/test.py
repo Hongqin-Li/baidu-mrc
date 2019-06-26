@@ -4,8 +4,14 @@ bc = BertClient(ip='localhost')
 
 while True:
     print ('Please input a sentence:')
-    sent = input()
-    print (bc.encode([sent]))
+    sents = input()
+    sents = [c for c in sents]
+
+    print (sents)
+    vec = bc.encode(sents, show_tokens=True)
+
+    print (vec)
+    print (vec[0].shape)
 
 	
 
