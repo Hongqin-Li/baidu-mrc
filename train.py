@@ -20,30 +20,66 @@ batch_size = 10
 save_per_steps = 10
 num_epochs = 10
 
-def train(epochs):
 
-    provider = DataProvider()
+def get_model_and_optimizer():
 
     model = Model(D_emb=embedding_dim, D_H=hidden_size)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    e = 0
-    cnt = 0
 
-    # Check previously saved model
+    if torch.cuda.is_available():
+        model = model.cuda()
+
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
     try:
         checkpoint = torch.load(checkpoint_path)
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        e = checkpoint['epoch']
+        # e = checkpoint['epoch']
         model.train()
         print ('Load previous model and optimizer!')
     except:
         print ('No saved model found!')
 
-    if torch.cuda.is_available():
-        model = model.cuda()
-        print ('Using GPU.')
+    return model, optimizer
+
+
+
+def test():
+    provider = DataProvider()
+    model, optimizer = get_model_and_optimizer()
+    criterion = nn.CrossEntropyLoss()
+
+    for docs, quests, begin_idxs, end_idxs, in provider.dev_batch(batch_size=batch_size):
+
+        if torch.cuda.is_available():
+            docs = docs.cuda()
+            quests = quests.cuda()
+            begin_idxs = begin_idxs.cuda()
+            end_idxs = end_idxs.cuda()
+
+        model.zero_grad()
+
+        begin_idxs_out, end_idxs_out = model(docs, quests) 
+
+        loss = criterion(begin_idxs_out, begin_idxs) + criterion(end_idxs_out, end_idxs)
+        print (f'Loss: {loss}')
+   
+
+def train(epochs):
+
+    e = 0
+    cnt = 0
+
+    provider = DataProvider()
+    model, optimizer = get_model_and_optimizer()
+    criterion = nn.CrossEntropyLoss()
+
+    try:
+        checkpoint = torch.load(checkpoint_path)
+        e = checkpoint['epoch']
+    except:
+        print ('No checkpoint found.')
+
 
     while e < epochs:
 

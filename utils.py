@@ -8,15 +8,37 @@ bc = BertClient(ip='localhost')
 # Modify path to preprocessed raw train file provided by baidu
 train_file = '../DuReader/data/preprocessed/trainset/search.train.json'
 test_file = '' # TODO
-dev_file = '' # TODO
+dev_file = '../DuReader/data/preprocessed/devset/search.dev.json'
+stopword_file = './data/stopwords'
 
 cnt = 0
 
+stopwords = []
+
+def print_count():
+    global cnt
+    cnt += 1
+    print (f'\r {cnt} ', end='')
+
+def get_stopwords():
+
+    global stopwords
+
+    with open(stopword_file, 'r') as f:
+        a = f.read().split()
+        stopwords = set(a)
+        print ('Finish loading stopwords.')
+        return
+    print ('Warning: Load stopwords failed!')
+
+get_stopwords()
+
 # TODO
+# Only allow Chinese character and remove stopwords
 def preprocess_str(s):
     res = ''
     for c in s:
-        if '\u4e00' <= c <= '\u9fa5':
+        if '\u4e00' <= c <= '\u9fa5' and c not in stopwords:
             res += c
     return res
 
@@ -70,9 +92,6 @@ def parse_line(line):
         print (f'id: {id} Cannot find given answer in document.')
         return None
 
-    global cnt
-    cnt += 1
-    print (f'\ridx: {cnt} ', end='')
     
     return doc, question, ans_begin_idx, ans_end_idx
 
@@ -97,6 +116,7 @@ def raw_json_to_input_batches(path, batch_size=100):
 
             begin_idxs.append(inp[2]) # answer span start index
             end_idxs.append(inp[3]) # answer span end index
+            print_count()
 
             cnt += 1
             if cnt == batch_size:
@@ -125,10 +145,25 @@ class DataProvider:
             yield batch
             
 
+    def dev_batch(self, batch_size=1000):
+
+        global cnt
+        pre_cnt = cnt 
+        cnt = 0
+
+        for batch in raw_json_to_input_batches(dev_file, batch_size=batch_size):
+            yield batch
+
+        cnt = pre_cnt
+
 if __name__ == '__main__':
     
     # Usage
     dataset = DataProvider()
+
+    for docs, quests, begin_idxs, end_idxs in dataset.dev_batch(batch_size=3):
+        print (docs.shape, quests.shape, begin_idxs.shape, end_idxs.shape)
+        input ()
 
     for docs, quests, begin_idxs, end_idxs in dataset.train_batch(batch_size=3):
         print (docs.shape, quests.shape, begin_idxs.shape, end_idxs.shape)
