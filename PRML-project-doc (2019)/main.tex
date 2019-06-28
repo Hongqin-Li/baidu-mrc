@@ -75,6 +75,20 @@ Bi-Directional Attention Flow (BiDAF) network is a hierarchical multi-stage arch
 \end{enumerate}
 \subsection{BERT}
 \subsection{BiDAF}
+Notations: 
+lenCon: the length of the context.
+lenQue: the length of the query.
+D_H: the size of the hidden layer.
+BiDAF is the main part of this model. BiDAF is short for Bi-directional Attention Flow, which means it uses backward and forward information to achieve this task. In fact, the BiDAF model is a combination of Bi-LSTM and attention, which are both suitable for QA problem.
+In this task, we reproduce BiDAF and makes some changes to match QA in Chinese better. Before we dive into BiDAF, we will first have a overview of this model. BiDAF is a model with six layers originally, but we only have four layers indeed. The original six layers are character embeddign layer, word embedding layer, contextual embedding layer, attention flow layer modeling layer and output layer, which in our model, the character embedding layer and word embedding layer are replaced by a pre-trained matrix provided by BERT. 
+Word embedding layer and character embedding layer: These two layers transform words and characters into embedding vectors. Since we have used BERT to do the embedding work, the importance of these layers decreases. Therefore, the real inputs are embedded matrixs produced by pretrained BERT. And we don't have enough resources to train BERT or even finetune it, we will simply fixed the output of BERT to do the embedding.
+Contextual embedding layer: This layer is simply a BiLSTM which makes the model have a general view of the whole passage. Since BiLSTM is wildly used in many models, we will not introduce the structure of the model in details. 
+Attention flow layer: This layer is the most important layer in this model. Th ebasic idea of this layer is to get two vectors: c2q and q2c, which makes the model be aware of the connections between the context and query. This layer is also the attention layer as mentioned in the name of BiDAF. This layer trys to make the context to be aware of the query and also to make the query be aware of the context. The computations in this layer is quite complicated. 
+To begin with, we have to mention the similarity matrix S(lenCon*lenQue). S[i][j] means the similarity between the i-th character in context and j-th character in query. And S[i][j]=W[C[i];Q[j];C[i]*Q[j]]+b.
+After we have got the similarity matrix, we need to compute the q2c and c2q matrix. We do the computation in the following way: $$a_t=softmax(S_{t:})\\U_{:t}=\sum_{j}a_{tj}U_{:j}$$. To be explicit, this matrix computes the sum of the similarity of each word in the context and the query. And finally, we get a new matrix of ( 2*D_H , lenCon ). In this way, we get the representations of the c2q.
+As for q2c, the idea is quite the same as c2q. The only difference is the direction to use this matrix. $$b=softmax(max(S))\\h=\sum_tb_tH_{:t}$$. And we get another matrix: (s*D_H* lenCon). Some difference here is that the length of context is much longer than the length of the query, so we need the most connnected word between context and query. That's where the max function comes from.
+Modeling layer: Like Contextual layer, this layer is a combination of two BiLSTM. It servers for the comprehensions of the information fetched in the formor layers. 
+Output layer: Work for this layer is simple: using the data to make predictions of the starts and ends of the answers.
 \begin{figure}[h]
 	\centering
 	\includegraphics[scale=0.3 ]{Model.png}
