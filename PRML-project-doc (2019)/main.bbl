@@ -1,0 +1,33 @@
+\begin{thebibliography}{3}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Collobert and Weston(2008)]{DBLP:conf/icml/CollobertW08}
+Ronan Collobert and Jason Weston.
+\newblock A unified architecture for natural language processing: deep neural
+  networks with multitask learning.
+\newblock In \emph{Machine Learning, Proceedings of the Twenty-Fifth
+  International Conference {(ICML} 2008), Helsinki, Finland, June 5-9, 2008},
+  pages 160--167, 2008.
+\newblock \doi{10.1145/1390156.1390177}.
+\newblock URL \url{http://doi.acm.org/10.1145/1390156.1390177}.
+
+\bibitem[Devlin et~al.(2018)Devlin, Chang, Lee, and
+  Toutanova]{DBLP:journals/corr/abs-1810-04805}
+Jacob Devlin, Ming{-}Wei Chang, Kenton Lee, and Kristina Toutanova.
+\newblock {BERT:} pre-training of deep bidirectional transformers for language
+  understanding.
+\newblock \emph{CoRR}, abs/1810.04805, 2018.
+\newblock URL \url{http://arxiv.org/abs/1810.04805}.
+
+\bibitem[Seo et~al.(2016)Seo, Kembhavi, Farhadi, and
+  Hajishirzi]{DBLP:journals/corr/SeoKFH16}
+Min~Joon Seo, Aniruddha Kembhavi, Ali Farhadi, and Hannaneh Hajishirzi.
+\newblock Bidirectional attention flow for machine comprehension.
+\newblock \emph{CoRR}, abs/1611.01603, 2016.
+\newblock URL \url{http://arxiv.org/abs/1611.01603}.
+
+\end{thebibliography}
