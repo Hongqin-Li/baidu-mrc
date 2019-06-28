@@ -16,7 +16,7 @@ hidden_size = 256
 
 learning_rate = 0.001
 
-batch_size = 10
+batch_size = 5
 save_per_steps = 10
 num_epochs = 10
 
@@ -27,6 +27,7 @@ def get_model_and_optimizer():
 
     if torch.cuda.is_available():
         model = model.cuda()
+        print ('Using GPU')
 
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -49,7 +50,7 @@ def test():
     model, optimizer = get_model_and_optimizer()
     criterion = nn.CrossEntropyLoss()
 
-    for docs, quests, begin_idxs, end_idxs, in provider.dev_batch(batch_size=batch_size):
+    for docs, quests, begin_idxs, end_idxs in provider.dev_batch(batch_size=batch_size):
 
         if torch.cuda.is_available():
             docs = docs.cuda()
@@ -61,8 +62,13 @@ def test():
 
         begin_idxs_out, end_idxs_out = model(docs, quests) 
 
+        # TODO How to calculate accuracy?
+        begin_idxs_diff = torch.mean(torch.abs(torch.argmax(begin_idxs_out, dim=1) - begin_idxs).double())
+        end_idxs_diff = torch.mean(torch.abs(torch.argmax(end_idxs_out, dim=1) - end_idxs).double())
+
         loss = criterion(begin_idxs_out, begin_idxs) + criterion(end_idxs_out, end_idxs)
         print (f'Loss: {loss}')
+        print (f'begin/end idx diff: {begin_idxs_diff}, {end_idxs_diff}')
    
 
 def train(epochs):

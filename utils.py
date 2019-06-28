@@ -7,13 +7,20 @@ bc = BertClient(ip='localhost')
 
 # Modify path to preprocessed raw train file provided by baidu
 train_file = '../DuReader/data/preprocessed/trainset/search.train.json'
-test_file = '' # TODO
+test_file = '../DuReader/data/preprocessed/testset/search.test.json'
 dev_file = '../DuReader/data/preprocessed/devset/search.dev.json'
 stopword_file = './data/stopwords'
+
+max_seq_len = 500
 
 cnt = 0
 
 stopwords = []
+punctuations = {',', '.', '。', '!', '?', ':', ';', '(', ')'}
+
+
+
+previous_raw_docs = []
 
 def print_count():
     global cnt
@@ -35,12 +42,26 @@ get_stopwords()
 
 # TODO
 # Only allow Chinese character and remove stopwords
-def preprocess_str(s):
+def preprocess_str(s, get_map=False):
     res = ''
-    for c in s:
-        if '\u4e00' <= c <= '\u9fa5' and c not in stopwords:
-            res += c
-    return res
+    ri = 0 # result's index
+
+    idx_map = [0] * len(s) # used to reproduce original answer
+
+    for i, c in enumerate(s):
+
+        # if not c.isspace() and '\u4e00' <= c <= '\u9fa5' and c not in stopwords:
+
+        if not c.isspace():
+            if '\u4e00' <= c <= '\u9fa5' or c in punctuations:
+                res += c # equivalent to res[ri] = c
+                idx_map[ri] = i
+                ri += 1
+
+    # print (res) # Test preprocessed string
+    # input ()
+    if get_map: return res, idx_map
+    else: return res
 
 def strs_to_tensors(strs):
     # strs: list of strings
@@ -50,7 +71,7 @@ def strs_to_tensors(strs):
 
     ts = []
     for s in strs:
-        t = torch.Tensor(bc.encode(['$' if c.isspace() else c for c in s]))
+        t = torch.Tensor(bc.encode([c for c in s]))
         ts.append(t)
 
     pts =  torch.nn.utils.rnn.pad_sequence(ts, batch_first=True)
@@ -58,7 +79,25 @@ def strs_to_tensors(strs):
     return pts
 
 def segmented_paras_to_str(sps):
+    
     return ''.join([ ''.join(sp) for sp in sps])
+
+def parse_line_testset(line):
+
+    data = json.loads(line)
+
+    id = data['question_id']
+
+    raw_docs = [ segmented_paras_to_str(doc['segmented_paragraphs'])  for doc in data['documents']  ]
+
+    question = preprocess_str(data['question']) # string
+
+    doc_idx_map_pairs = [preprocess_str(doc, get_map=True)  for doc in raw_docs]
+
+    docs = [p[0] for p in doc_idx_map_pairs]
+    idx_maps = [p[1] for p in doc_idx_map_pairs]
+
+    return question, docs, raw_docs, idx_maps, id
 
 
 def parse_line(line):
@@ -74,30 +113,32 @@ def parse_line(line):
     elif len(data['fake_answers']) > 1:
         print (f'id: {id} Warning: More than 1 anwers are provided.')
 
-    doc = segmented_paras_to_str(data['documents'][data['answer_docs'][0]]['segmented_paragraphs'])
+    raw_doc = segmented_paras_to_str(data['documents'][data['answer_docs'][0]]['segmented_paragraphs'])
 
     question = data['question'] # string
     answer = data['fake_answers'][0] # string
 
-    doc = preprocess_str(doc)
+    doc, idx_map = preprocess_str(raw_doc, get_map=True)
     answer = preprocess_str(answer)
     question = preprocess_str(question)
 
-    # print (f'doc_len: {len(doc)}, quest_len: {len(question)}, ans_len: {len(answer)}')
-
     ans_begin_idx = doc.find(answer)
-    ans_end_idx = ans_begin_idx + len(answer)
-    
-    if ans_begin_idx == -1:
+    ans_end_idx = ans_begin_idx + len(answer) - 1
+
+    print (f'doc_len: {len(doc)} ', end='')
+
+    if ans_begin_idx == -1 or ans_end_idx < ans_begin_idx:
         print (f'id: {id} Cannot find given answer in document.')
         return None
 
     
-    return doc, question, ans_begin_idx, ans_end_idx
+    return doc, question, ans_begin_idx, ans_end_idx, raw_doc, idx_map, id
 
 def raw_json_to_input_batches(path, batch_size=100):
 
     docs, quests, begin_idxs, end_idxs = [], [], [], []
+
+    raw_docs, idx_maps, ids = [], [], []
 
     cnt = 0
 
@@ -116,15 +157,20 @@ def raw_json_to_input_batches(path, batch_size=100):
 
             begin_idxs.append(inp[2]) # answer span start index
             end_idxs.append(inp[3]) # answer span end index
+
+            raw_docs.append(inp[4])
+            idx_maps.append(inp[5])
+            ids.append(inp[6])
+
             print_count()
 
             cnt += 1
             if cnt == batch_size:
                 
-                yield strs_to_tensors(docs), strs_to_tensors(quests), torch.LongTensor(begin_idxs), torch.LongTensor(end_idxs)
+                yield strs_to_tensors(docs), strs_to_tensors(quests), torch.LongTensor(begin_idxs), torch.LongTensor(end_idxs), raw_docs, idx_maps, ids
 
                 # reset to collect next batch
-                docs, quests, begin_idxs, end_idxs = [], [], [], []
+                docs, quests, begin_idxs, end_idxs, raw_docs, idx_maps, ids = [], [], [], [], [], [], []
                 cnt = 0
 
 
@@ -141,28 +187,66 @@ class DataProvider:
         global cnt 
         cnt = 0
 
-        for batch in raw_json_to_input_batches(train_file, batch_size=batch_size):
-            yield batch
+        for docs, quests, begin_idxs, end_idxs, _, _, _ in raw_json_to_input_batches(train_file, batch_size=batch_size):
+            yield docs, quests, begin_idxs, end_idxs
             
 
-    def dev_batch(self, batch_size=1000):
+    def dev_batch(self, batch_size=1000, get_raw=False):
 
         global cnt
         pre_cnt = cnt 
         cnt = 0
 
-        for batch in raw_json_to_input_batches(dev_file, batch_size=batch_size):
-            yield batch
+        for docs, quests, begin_idxs, end_idxs, raw_docs, idx_maps, ids in raw_json_to_input_batches(dev_file, batch_size=batch_size):
+            if get_raw:
+                yield docs, quests, begin_idxs, end_idxs, raw_docs, idx_maps, ids
+            else: 
+                yield docs, quests, begin_idxs, end_idxs
 
         cnt = pre_cnt
+
+    def test_batch(self, get_raw=True):
+
+        global cnt
+        pre_cnt = cnt 
+        cnt = 0
+
+        with open(test_file, 'r') as f:
+
+            for line in f:
+
+                quest, docs, raw_docs, idx_maps, id = parse_line_testset(line)
+                print (f'question: {quest}')
+
+                yield strs_to_tensors([quest] * len(docs)), strs_to_tensors(docs), raw_docs, idx_maps, id
+        
+        cnt = pre_cnt
+        
 
 if __name__ == '__main__':
     
     # Usage
     dataset = DataProvider()
 
-    for docs, quests, begin_idxs, end_idxs in dataset.dev_batch(batch_size=3):
+
+    # Notice that we have several candidate documents for one question, and thus the quests bellow is all same
+    for quests, docs, raw_docs, idx_maps, id in dataset.test_batch():
+        print (raw_docs)
+        print (f'quests: {quests.shape}, docs: {docs.shape}')
+        input ()
+        
+
+    for docs, quests, begin_idxs, end_idxs, raw_docs, idx_maps, ids in dataset.dev_batch(batch_size=3, get_raw=True):
+        # get_raw: get raw_docs and idx_maps
+        # This is necessary when we want to get back the original answer span from the preprocessed one
+
         print (docs.shape, quests.shape, begin_idxs.shape, end_idxs.shape)
+
+        for d, bi, ei, idx_map in zip(raw_docs, begin_idxs, end_idxs, idx_maps):
+            raw_ans = d[idx_map[bi]: idx_map[ei]]
+            # This is the way to get back original answer
+            print (raw_ans)
+            
         input ()
 
     for docs, quests, begin_idxs, end_idxs in dataset.train_batch(batch_size=3):
