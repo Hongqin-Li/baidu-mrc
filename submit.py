@@ -21,11 +21,19 @@ def submit():
         begin_idxs = torch.argmax(begin_idxs_out, dim=1).tolist()
         end_idxs = torch.argmax(end_idxs_out, dim=1).tolist()
 
+        answers = []
         for d, bi, ei, idx_map in zip(raw_docs, begin_idxs, end_idxs, idx_maps):
             raw_ans = d[idx_map[bi]: idx_map[ei] + 1]
             print (f'doc: {d}')
             print (f'answer: {raw_ans}')
+            answers.append(raw_ans)
             input ()
+
+        # Construct json 
+        pred = {}
+        pred['yesno_answers'] = []
+        pred['question'] = raw_question
+        pred['question_type'] = raw_json
             
         # TODO select the best answer according to softmax
 

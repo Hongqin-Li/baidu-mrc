@@ -16,8 +16,8 @@ hidden_size = 256
 
 learning_rate = 0.001
 
-batch_size = 5
-save_per_steps = 10
+batch_size = 10
+save_per_steps = 10000//10
 num_epochs = 10
 
 
@@ -60,6 +60,7 @@ def test():
 
         model.zero_grad()
 
+
         begin_idxs_out, end_idxs_out = model(docs, quests) 
 
         # TODO How to calculate accuracy?
@@ -101,11 +102,17 @@ def train(epochs):
 
             model.zero_grad()
 
-            begin_idxs_out, end_idxs_out = model(docs, quests) 
+            print (f'docs len: {docs.shape[1]} ', end='')
 
-            loss = criterion(begin_idxs_out, begin_idxs) + criterion(end_idxs_out, end_idxs)
-            loss.backward()
-            optimizer.step()
+            try:
+                begin_idxs_out, end_idxs_out = model(docs, quests) 
+                loss = criterion(begin_idxs_out, begin_idxs) + criterion(end_idxs_out, end_idxs)
+                loss.backward()
+                optimizer.step()
+            except: 
+                print ('Error when feed into model.')
+                continue
+
 
             print (f'Loss: {loss}')
 
