@@ -5,16 +5,6 @@
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
 
-\bibitem[Collobert and Weston(2008)]{DBLP:conf/icml/CollobertW08}
-Ronan Collobert and Jason Weston.
-\newblock A unified architecture for natural language processing: deep neural
-  networks with multitask learning.
-\newblock In \emph{Machine Learning, Proceedings of the Twenty-Fifth
-  International Conference {(ICML} 2008), Helsinki, Finland, June 5-9, 2008},
-  pages 160--167, 2008.
-\newblock \doi{10.1145/1390156.1390177}.
-\newblock URL \url{http://doi.acm.org/10.1145/1390156.1390177}.
-
 \bibitem[Devlin et~al.(2018)Devlin, Chang, Lee, and
   Toutanova]{DBLP:journals/corr/abs-1810-04805}
 Jacob Devlin, Ming{-}Wei Chang, Kenton Lee, and Kristina Toutanova.
@@ -22,6 +12,15 @@ Jacob Devlin, Ming{-}Wei Chang, Kenton Lee, and Kristina Toutanova.
   understanding.
 \newblock \emph{CoRR}, abs/1810.04805, 2018.
 \newblock URL \url{http://arxiv.org/abs/1810.04805}.
+
+\bibitem[He et~al.(2017)He, Liu, Lyu, Zhao, Xiao, Liu, Wang, Wu, She, Liu, Wu,
+  and Wang]{DBLP:journals/corr/abs-1711-05073}
+Wei He, Kai Liu, Yajuan Lyu, Shiqi Zhao, Xinyan Xiao, Yuan Liu, Yizhong Wang,
+  Hua Wu, Qiaoqiao She, Xuan Liu, Tian Wu, and Haifeng Wang.
+\newblock Dureader: a chinese machine reading comprehension dataset from
+  real-world applications.
+\newblock \emph{CoRR}, abs/1711.05073, 2017.
+\newblock URL \url{http://arxiv.org/abs/1711.05073}.
 
 \bibitem[Seo et~al.(2016)Seo, Kembhavi, Farhadi, and
   Hajishirzi]{DBLP:journals/corr/SeoKFH16}
