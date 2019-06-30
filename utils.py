@@ -259,7 +259,7 @@ class DataProvider:
             for line in f:
 
                 quest, docs, raw_docs, idx_maps, raw_data = parse_line_testset(line)
-                print (f'question: {quest}')
+                # print (f'question: {quest}')
 
                 yield strs_to_tensors([quest] * len(docs)), strs_to_tensors(docs), raw_docs, idx_maps, raw_data
         
