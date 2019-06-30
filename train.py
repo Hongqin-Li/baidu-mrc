@@ -6,9 +6,12 @@ from torch.autograd import Variable
 
 from model.BiDAF_rep import BiDAF as Model
 from utils import DataProvider
+from utils import yesorno_only
 
+# checkpoint_path = './checkpoints/checkpoint_yesorno.pt' if yesorno_only else './checkpoints/checkpoint.pt'
 
 checkpoint_path = './checkpoints/checkpoint.pt'
+yesorno_checkpoint_path = './checkpoints/checkpoint_yesorno.pt'
 
 # Hyperparameters
 embedding_dim = 768
@@ -21,7 +24,7 @@ save_per_steps = 10000//10
 num_epochs = 10
 
 
-def get_model_and_optimizer():
+def get_model_and_optimizer(checkpoint=checkpoint_path):
 
     model = Model(D_emb=embedding_dim, D_H=hidden_size)
 
@@ -115,6 +118,9 @@ def train(epochs):
 
 
             print (f'Loss: {loss}')
+            # FIXME
+            with open ('loss.log', 'a') as f:
+                f.write(f'{loss}\n')
 
             cnt += 1
             if cnt == save_per_steps:

@@ -5,8 +5,7 @@ import json
 
 from utils import DataProvider
 from train import get_model_and_optimizer
-
-
+from train import checkpoint_path, yesorno_checkpoint_path
 
 pred_file = '../pred.json'
 ref_file = '../ref.json'
@@ -35,22 +34,40 @@ def test():
 
     data_provider = DataProvider()
     model, _ = get_model_and_optimizer()
+    yesorno_model, _ = get_model_and_optimizer(yesorno_checkpoint_path)
 
     for docs, quests, begin_idxs, end_idxs, raw_docs, idx_maps, raw_datas in data_provider.dev_batch(batch_size=2, get_raw=True):
     
+        
         if torch.cuda.is_available():
             quests = quests.cuda()
             docs = docs.cuda()
 
         # print (docs.shape, quests.shape)
+
         begin_idxs_out, end_idxs_out = model(docs, quests) 
         
         begin_idxs_pred = torch.argmax(begin_idxs_out, dim=1).tolist()
         end_idxs_pred = torch.argmax(end_idxs_out, dim=1).tolist()
 
+        begin_idxs_yn_out, end_idxs_yn_out = yesorno_model(docs, quests)
+
+        begin_idxs_yn_pred = torch.argmax(begin_idxs_yn_out, dim=1).tolist()
+        end_idxs_yn_pred = torch.argmax(end_idxs_yn_out, dim=1).tolist()
+
         answer_preds = []
-        for d, bi, ei, idx_map in zip(raw_docs, begin_idxs_pred, end_idxs_pred, idx_maps):
-            raw_ans = d[idx_map[bi]: idx_map[ei] + 1]
+
+        for d, bi, ei, bi_yn, ei_yn, idx_map, raw_data in zip(raw_docs, begin_idxs_pred, end_idxs_pred, begin_idxs_yn_pred, end_idxs_yn_pred, idx_maps, raw_datas):
+
+            raw_ans = ''
+
+            # use another model to answer yes or no questions
+            
+            if raw_data['question_type'] == 'YES_NO':
+                raw_ans = d[idx_map[bi_yn]: idx_map[ei_yn] + 1]
+            else:
+                raw_ans = d[idx_map[bi]: idx_map[ei] + 1]
+
             # print (f'doc: {d}')
             # print (f'answer: {raw_ans}')
             answer_preds.append(raw_ans)

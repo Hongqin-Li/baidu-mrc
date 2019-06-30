@@ -12,7 +12,9 @@ test_file = '../DuReader/data/preprocessed/testset/search.test.json'
 dev_file = '../DuReader/data/preprocessed/devset/search.dev.json'
 stopword_file = './data/stopwords'
 
-pretrained_file = './data/pretrained'
+char_pretrained_file = './data/char_pretrained'
+
+yesorno_only = False
 
 max_seq_len = 2000
 
@@ -23,7 +25,7 @@ stopwords = []
 punctuations = {',', '.', '。', '!', '?', ':', ';', '(', ')'}
 
 
-word_to_vec = None
+char_to_vec = None
 
 previous_raw_docs = []
 
@@ -46,10 +48,10 @@ def get_stopwords():
 get_stopwords()
 
 
-def get_pretrained_word_embedding(path):
+def get_pretrained_char_embedding(path):
 
     
-    word_to_vec = {}
+    char_to_vec = {}
 
     with open(path, 'r') as f:
 
@@ -57,17 +59,17 @@ def get_pretrained_word_embedding(path):
             word_and_vec = line.split()
             word = word_and_vec[0]
             vec = [float(s) for s in word_and_vec[1:]]
-            word_to_vec[word] = vec 
+            char_to_vec[word] = vec 
 
         print ('Load pretrained embedding.')
-        return word_to_vec
+        return char_to_vec
 
     print ('Get pretrained embedding failed!')
 
     return None
 
 
-word_to_vec = get_pretrained_word_embedding(pretrained_file)
+char_to_vec = get_pretrained_char_embedding(char_pretrained_file)
 
 
 # TODO
@@ -83,13 +85,13 @@ def preprocess_str(s, get_map=False):
         # if not c.isspace() and '\u4e00' <= c <= '\u9fa5' and c not in stopwords:
 
         if not c.isspace():
-            if c in word_to_vec:
+            if c in char_to_vec:
                 res += c # equivalent to res[ri] = c
                 idx_map[ri] = i
                 ri += 1
 
-    print (res) # Test preprocessed string
-    input ()
+    # print (res) # Test preprocessed string
+    # input ()
     if get_map: return res, idx_map
     else: return res
 
@@ -101,7 +103,7 @@ def strs_to_tensors(strs):
 
     ts = []
     for s in strs:
-        t = torch.Tensor([word_to_vec[c] for c in s])
+        t = torch.Tensor([char_to_vec[c] for c in s])
         ts.append(t)
 
     pts =  torch.nn.utils.rnn.pad_sequence(ts, batch_first=True)
@@ -136,6 +138,11 @@ def parse_line(line):
     data = json.loads(line)
 
     id = data['question_id']
+
+    question_type = data['question_type']
+
+    if yesorno_only and question_type != 'YES_NO':
+        return None
 
     if len(data['fake_answers']) == 0:
         # print (f'id: {id} No answer provided')
@@ -188,6 +195,7 @@ def raw_json_to_input_batches(path, batch_size=100):
             if inp == None: continue
 
             if inp[0] == '' or inp[1] == '': continue
+
 
             docs.append(inp[0]) # document string
             quests.append(inp[1]) # question string
