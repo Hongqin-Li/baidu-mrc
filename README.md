@@ -5,10 +5,18 @@ Structure:
 ```
 .
 ├── materials: Contest descriptions
-├── model: Baseline model
+├── model: BiDAF models
 ├── raw_data: ignored by .gitignore
 ├── data: ignored by .gitignore
 ├── utils: Data Preprocessing
+│
+├── train.py
+├── test.py: Generate formatted pred.json and ref.json, which can be evaluated by `bash eval.sh`
+├── submit.py: Generate submission file
+│ 
+├── evaluation_metric: official evaluation script
+├── eval.sh: script for evaluation
+│ 
 └── README.md
 ```
 
@@ -41,6 +49,70 @@ git clone ...
 
 
 
+## Usage
+
+First, run bert-service since and create a pretrained word embedding file.
+
+```shell
+# Under ./baidu-mrc
+cd bert-serving
+bash run_server.sh
+# ...wait for a while
+cd ../data
+python3 create_dict.py
+```
+
+which will generate some temp file in `./bert-serving` and a Chinese character embedding file at `data/char_pretrained`.
+
+Then train by 
+
+```shell
+# Under ./baidu-mrc
+python3 train.py
+```
+
+The saved model locates at  `./checkpoints/checkpoint.pt`
+
+(Optionally) train a yes-or-no model by modifing `yesorno_only = True` in  `utils.py` and then running
+
+```
+python3 train.py
+```
+
+
+
+### Test
+
+(Optionally) Turn `use_yesorno_model = True` in `test.py` if you have trained a yes-or-no model and want to use it to create prediction.
+
+Test on development dataset by 
+
+```
+python3 test.py
+```
+
+which will generate `../pred.json` and `../ref.json` for prediction and reference respectively. Then evaluate our result by 
+
+```
+bash eval.sh
+```
+
+
+
+### Submit
+
+(Optionally) Turn `use_yesorno_model = True` in `submit.py` if you have trained a yes-or-no model and want to use it to create prediction.
+
+Then run the following command to generate a submission file `./submit.json`.
+
+```
+python3 submit.py
+```
+
+
+
+
+
 ## Task
 
 Official description can be found [here](https://ai.baidu.com/broad/introduction?dataset=dureader).
@@ -51,15 +123,9 @@ Given a question $q$, and a set of documents $D = \{d_1, d_2, ..., d_n\}$, we ar
 
 
 
-### Input
-
-
-
-
-
 ### Submission
 
-
+[link](https://ai.baidu.com/broad/submission?dataset=dureader)
 
 
 
@@ -67,11 +133,4 @@ Given a question $q$, and a set of documents $D = \{d_1, d_2, ..., d_n\}$, we ar
 
 It will have a set of evaluation metrics (Bleu-4, Rouge-L etc.) to measure the **closeness** of our answer $a$ to the reference answer $Ar$.
 
-
-
-
-
-## Optimization
-
-**把答案加入encode**：由于description类的问题的某些备选答案是携带语义信息的，故将备选答案也做encoding处理。
 
