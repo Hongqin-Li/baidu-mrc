@@ -8,6 +8,7 @@ from train import get_model_and_optimizer
 from train import checkpoint_path, yesorno_checkpoint_path
 
 submit_file = './submit.json'
+use_yesorno_model = False
 
 def submit():
 
@@ -26,7 +27,10 @@ def submit():
 
     data_provider = DataProvider()
     model, _ = get_model_and_optimizer()
-    yesorno_model, _ = get_model_and_optimizer(yesorno_checkpoint_path)
+
+    yesorno_model = None
+    if use_yesorno_model:
+        yesorno_model, _ = get_model_and_optimizer(yesorno_checkpoint_path)
 
     cnt = 0
     # TODO Actually test_batch batch size is 1
@@ -37,7 +41,7 @@ def submit():
             docs = docs.cuda()
 
         begin_idxs_out, end_idxs_out = None, None
-        if raw_data['question_type'] == 'YES_NO':
+        if use_yesorno_model and raw_data['question_type'] == 'YES_NO':
             begin_idxs_out, end_idxs_out = yesorno_model(docs, quests) 
         else:
             begin_idxs_out, end_idxs_out = model(docs, quests) 

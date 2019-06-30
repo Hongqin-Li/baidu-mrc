@@ -4,7 +4,7 @@ from bert_serving.client import BertClient
 bc = BertClient(ip='localhost')
 
 dict_file = 'dict'
-output_file = 'pretrained'
+output_file = 'char_pretrained'
 batch_size = 1000
 
 punctuations = [',', '.', '。', '!', '?', ':', ';', '(', ')']

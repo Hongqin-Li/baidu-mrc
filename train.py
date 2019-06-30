@@ -7,11 +7,13 @@ from torch.autograd import Variable
 from model.BiDAF_rep import BiDAF as Model
 from utils import DataProvider
 from utils import yesorno_only
+# if want to train yesorno model, turn this to Ture
 
 # checkpoint_path = './checkpoints/checkpoint_yesorno.pt' if yesorno_only else './checkpoints/checkpoint.pt'
 
 checkpoint_path = './checkpoints/checkpoint.pt'
 yesorno_checkpoint_path = './checkpoints/checkpoint_yesorno.pt'
+
 
 # Hyperparameters
 embedding_dim = 768
@@ -24,7 +26,7 @@ save_per_steps = 10000//10
 num_epochs = 10
 
 
-def get_model_and_optimizer(checkpoint=checkpoint_path):
+def get_model_and_optimizer(path=checkpoint_path):
 
     model = Model(D_emb=embedding_dim, D_H=hidden_size)
 
@@ -35,12 +37,12 @@ def get_model_and_optimizer(checkpoint=checkpoint_path):
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     try:
-        checkpoint = torch.load(checkpoint_path)
+        checkpoint = torch.load(path)
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         # e = checkpoint['epoch']
         model.train()
-        print ('Load previous model and optimizer!')
+        print (f'Load previous model and optimizer at {path}')
     except:
         print ('No saved model found!')
 
@@ -81,11 +83,20 @@ def train(epochs):
     cnt = 0
 
     provider = DataProvider()
-    model, optimizer = get_model_and_optimizer()
+    model, optimizer = None, None
+
+    save_path = ''
+    if yesorno_only:
+        model, optimizer = get_model_and_optimizer(yesorno_checkpoint_path)
+        save_path = yesorno_checkpoint_path
+    else:
+        model, optimizer = get_model_and_optimizer(checkpoint_path)
+        save_path = checkpoint_path
+
     criterion = nn.CrossEntropyLoss()
 
     try:
-        checkpoint = torch.load(checkpoint_path)
+        checkpoint = torch.load(save_path)
         e = checkpoint['epoch']
     except:
         print ('No checkpoint found.')
@@ -129,7 +140,7 @@ def train(epochs):
                     'epoch': e,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
-                }, checkpoint_path)
+                }, save_path)
                 print (f'Save model at epoch {e}' )
 
         e += 1

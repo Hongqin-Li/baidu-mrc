@@ -10,6 +10,8 @@ from train import checkpoint_path, yesorno_checkpoint_path
 pred_file = '../pred.json'
 ref_file = '../ref.json'
 
+use_yesorno_model = False
+
 # Generate formatted prediction and reference file of development set
 def test():
     
@@ -50,29 +52,31 @@ def test():
         begin_idxs_pred = torch.argmax(begin_idxs_out, dim=1).tolist()
         end_idxs_pred = torch.argmax(end_idxs_out, dim=1).tolist()
 
-        begin_idxs_yn_out, end_idxs_yn_out = yesorno_model(docs, quests)
-
-        begin_idxs_yn_pred = torch.argmax(begin_idxs_yn_out, dim=1).tolist()
-        end_idxs_yn_pred = torch.argmax(end_idxs_yn_out, dim=1).tolist()
+        begin_idxs_yn_pred, end_idxs_yn_pred = None, None
 
         answer_preds = []
 
-        for d, bi, ei, bi_yn, ei_yn, idx_map, raw_data in zip(raw_docs, begin_idxs_pred, end_idxs_pred, begin_idxs_yn_pred, end_idxs_yn_pred, idx_maps, raw_datas):
+        if use_yesorno_model:
+            begin_idxs_yn_out, end_idxs_yn_out = yesorno_model(docs, quests)
 
-            raw_ans = ''
+            begin_idxs_yn_pred = torch.argmax(begin_idxs_yn_out, dim=1).tolist()
+            end_idxs_yn_pred = torch.argmax(end_idxs_yn_out, dim=1).tolist()
 
-            # use another model to answer yes or no questions
-            
-            if raw_data['question_type'] == 'YES_NO':
-                raw_ans = d[idx_map[bi_yn]: idx_map[ei_yn] + 1]
-            else:
+            for d, bi, ei, bi_yn, ei_yn, idx_map, raw_data in zip(raw_docs, begin_idxs_pred, end_idxs_pred, begin_idxs_yn_pred, end_idxs_yn_pred, idx_maps, raw_datas):
+                raw_ans = ''
+                # use another model to answer yes or no questions
+                if raw_data['question_type'] == 'YES_NO':
+                    raw_ans = d[idx_map[bi_yn]: idx_map[ei_yn] + 1]
+                else:
+                    raw_ans = d[idx_map[bi]: idx_map[ei] + 1]
+                answer_preds.append(raw_ans)
+
+        else:
+            for d, bi, ei, idx_map, raw_data in zip(raw_docs, begin_idxs_pred, end_idxs_pred, idx_maps, raw_datas):
+                raw_ans = ''
                 raw_ans = d[idx_map[bi]: idx_map[ei] + 1]
-
-            # print (f'doc: {d}')
-            # print (f'answer: {raw_ans}')
-            answer_preds.append(raw_ans)
-            # input ()
-
+                answer_preds.append(raw_ans)
+            
         # TODO select the best answer according to softmax
 
         for answer, data in zip(answer_preds, raw_datas):

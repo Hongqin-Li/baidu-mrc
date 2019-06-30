@@ -14,6 +14,7 @@ stopword_file = './data/stopwords'
 
 char_pretrained_file = './data/char_pretrained'
 
+# If want to train yesorno model, modify this to true
 yesorno_only = False
 
 max_seq_len = 2000
